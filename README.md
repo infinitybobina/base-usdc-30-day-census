@@ -22,7 +22,7 @@ Every number below carries the measurement it came from. Denominators are never 
 | USDC transactions in windows | 49,924 | Window scan |
 | Transfer logs in windows | 98,916 | Window scan |
 | Transactions carrying app-code suffix | 5,120 (10.3%) | Window scan |
-| Window blocks with ≥1 suffix | 992 | Window scan |
+| Window blocks with ≥1 suffix | 992 | Window scan · `observer_facilitator_total.json` |
 | Value on app codes inside windows | $5,753,418.14 (sum of logs, not scaled) | Window scan · `observer_facilitator_total.json` |
 | Registry-address txs in windows | 92, none suffixed | Window scan · `observer_facilitator_total.json` |
 | Sampled blocks | 25,921 (every 50th, ~2%) | Pass 2 |
@@ -45,7 +45,7 @@ Every block of the census range, every `Transfer` log of USDC (`0x833589fCD6eDb6
 
 ### Window scan — suffix share across all USDC transactions
 
-Anchored to chain tip 52,063,968. Windows cover blocks 50,767,968–52,020,807. No clock dates are stored in this file. For every USDC transaction in a window, the enclosing transaction's calldata tail is checked for an ERC-8021 suffix. The windows contain 49,924 USDC transactions and 98,916 Transfer logs; 992 window blocks contain at least one suffixed transaction. Result: 5,120 transactions (10.3%) carry an app code. The value attributed to app codes is $5,753,418.14 — a sum of Transfer logs inside the tagged transactions, so multi-hop transfers are counted at each hop, exactly as in the baseline; it is not unique payment volume. Separately, 92 transactions touched facilitator addresses from the public registry; none carried a suffix. This scan is intentionally not scaled to the month.
+Anchored to chain tip 52,063,968. Windows cover blocks 50,767,968–52,020,807. No clock dates are stored in this file. For every USDC transaction in a window, the enclosing transaction's calldata tail is checked for an ERC-8021 suffix. The windows contain 49,924 USDC transactions and 98,916 Transfer logs; 992 window blocks contain at least one suffixed transaction (counted as distinct block numbers among the 5,120 suffixed transactions). Result: 5,120 transactions (10.3%) carry an app code. The value attributed to app codes is $5,753,418.14 — a sum of Transfer logs inside the tagged transactions, so multi-hop transfers are counted at each hop, exactly as in the baseline; it is not unique payment volume. Separately, 92 transactions touched facilitator addresses from the public registry; none carried a suffix. This scan is intentionally not scaled to the month.
 
 ### Pass 2 — sampled calldata scan
 
@@ -73,7 +73,7 @@ Checks, in order. Before the run: a control transaction from an earlier scan was
 ## Reproduce
 
 - `artifacts/observer_hours.csv` — Pass 1 hourly baseline (all USDC transfers)
-- `artifacts/observer_run.json` — window-scan totals and top codes
+- `artifacts/observer_run.json` — window scan: run summary and top-10 codes
 - `artifacts/observer_facilitator_total.json` — window-scan totals: attributed amount, registry-address transactions, window blocks with suffix
 - `artifacts/observer2_hours.csv` — Pass 2 hourly: all candidates / suffixed / facilitator
 - `artifacts/observer2_summary.json` — Pass 2 totals and acceptance checks
