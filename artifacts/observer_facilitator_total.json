@@ -1,0 +1,40 @@
+{
+  "sample": "one 40-block window per day, 30 days, stored rows only",
+  "usdc_txs": 49924,
+  "attributed_payments": 5120,
+  "window_blocks_with_suffix": 992,
+  "attributed_amount_usdc": "5753418.140067",
+  "facilitator_payments": 1399,
+  "facilitator_amount_usdc": "2.907327",
+  "by_facilitator": [
+    {
+      "facilitator_id": "settle_unlisted",
+      "name": "settle, sender not in the published list",
+      "payments": 1399,
+      "amount_usdc": "2.907327",
+      "tx_to": "0x0770d2124c0a581c28cfc47a659817145e6cc137",
+      "selector": "0x92669141",
+      "signature": "settle(address,address,uint256)"
+    }
+  ],
+  "settle_senders": [
+    {"tx_from": "0x0f99fc0cbd7a114b2da171fda5a0167858f7afc2", "payments": 354, "amount_usdc": "0.358763"},
+    {"tx_from": "0x7f80c2b652ddb83323e71e272b0fce1a301790d3", "payments": 272, "amount_usdc": "0.736867"},
+    {"tx_from": "0xadb8d385aab1766e1266ee717d04a52e3a2cf262", "payments": 219, "amount_usdc": "0.234008"},
+    {"tx_from": "0x1e972e1e05f92772082a1a1ed75d3326a4dbde9e", "payments": 210, "amount_usdc": "0.397836"},
+    {"tx_from": "0x42076abfe0ef6af3463d692fdcd40feae31f24e0", "payments": 185, "amount_usdc": "0.709148"},
+    {"tx_from": "0x313d333f7d2ee578825383bccbb1223eb50f2d56", "payments": 153, "amount_usdc": "0.411850"},
+    {"tx_from": "0x8581784d3e598cca3482375cff2409ac9dd8c402", "payments": 6, "amount_usdc": "0.058855"}
+  ],
+  "listed_facilitator_txs_in_windows": 92,
+  "listed_facilitator_txs_with_suffix": 0,
+  "listed_facilitator_txs_by_id": [
+    {"facilitator_id": "payai", "name": "PayAI", "txs": 75, "with_suffix": 0},
+    {"facilitator_id": "ultravioletadao", "name": "Ultravioleta DAO", "txs": 13, "with_suffix": 0},
+    {"facilitator_id": "virtuals", "name": "Virtuals Protocol", "txs": 4, "with_suffix": 0}
+  ],
+  "coinbase_named_address_txs_in_windows": 0,
+  "coinbase_proof": null,
+  "a5_tx_in_base_sample": 0,
+  "rows_missing_tx_from": 0
+}

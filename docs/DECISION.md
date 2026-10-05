@@ -1,0 +1,79 @@
+# Experiment results
+
+Published figures are the table in `README.md`. This notebook records decisions in the order they were made. Sentences that still say the hour walk is running were written before that walk finished. The Transfer-leg total below matches `artifacts/observer_hours.csv`.
+
+Personal payment-account details from the lab log are not in this copy.
+
+| ID | Status | Artifact | Notes |
+|----|--------|----------|-------|
+| A1 | PASS | artifacts/A1/report.json | HTTP 402, challenge: amount_minor=10000, network=eip155:84532, payTo set |
+| A2 | PASS | artifacts/A2/report.json | settlement tx 0xbfc3e1a4…, onAfterSettle, chain USDC 10000 |
+| A3 | PASS_PARTIAL | artifacts/A3/report.json | goal met: 402, no spend, invalid_exact_evm_signature, no settle. Hook-before-facilitator failed |
+| A4 | PASS | artifacts/A4/report.json | SETTLE_FAIL: onSettleFailure, NETWORK_ERROR, retry payload kept, retryable=false. Delay is F4 |
+| A5 | PASS_PARTIAL | artifacts/A5/report.json | calldata has a=agent_spend_a5; facilitator w absent, settler is tx.from |
+| B1 | BLOCKED_EXTERNAL | artifacts/B1/report.json | Sandbox profile stayed locked pending live activation. Not part of the Base measurements. |
+| B2 | PASS | artifacts/B2/report.json | Sandbox card experiment passed. Not part of the Base measurements. |
+| C1 | NOT_RUN | | AgentCore ledger / FAILED |
+| C2 | NOT_RUN | | X-Ray payment span |
+| C3 | PASS_PARTIAL | artifacts/C3/report.json | ES256 SD-JWT chain verifies; over-limit rejects after signatures (F5) |
+
+Wallets (testnet-only, disposable). Addresses only.
+
+| Role | Address |
+|------|---------|
+| payTo | `0x6c2879A5857970C3F3D811a87b7f4730472e0b27` |
+| buyer | `0x04F0eEf7182673EB6416bE29b60a1c8ab1BB2Fdc` |
+
+## Findings
+
+### F1. Settlement amount is reconciled on-chain
+
+The facilitator does not have to put the amount in `PAYMENT-RESPONSE`. A2 returned only the transaction reference (`amount: null`). Ingestion cannot trust that single field. For `event_type=settlement`, `money.amount_minor` stays null until reconciliation. An enricher resolves `proof.tx_hash` → RPC → decoded USDC `Transfer`, fills the amount, and checks the recipient. That promised-versus-settled match is the ledger. A2 confirmed it: challenge `10000` matched the Transfer log.
+
+### F2. Verify hook observes the facilitator response
+
+In this SDK, `onVerifyFailure` arrives only after `facilitator.verify` returns. That is an observation point, not a local check before the paid call. For the ledger this is enough: the refusal reason is the facilitator's reason. When the schema is extended, add optional `failure.facilitator_reason` without breaking v0.1. A3 also showed `failure.retryable=false`: the stock client made one signed attempt and did not retry, so an agent with no monitor never sees the refusal.
+
+### F3. Attribution is two public channels
+
+Attribution does not depend on a complete suffix. Channel one is the ERC-8021 calldata tail (`a=agent_spend_a5`, `s=agent_spend_buyer` on tx `0xf1e7a492…`). Channel two is the transaction sender (`0xd407e409E34E0b9afb99EcCeb609bDbcD5e7f1bf`), which identifies the facilitator even when suffix field `w` is empty. An empty suffix field does not block attribution. CDP Portal registration only names an official builder code; the mechanism already works without it. Register the official code when a CDP account exists.
+
+### F4. A facilitator timeout is indistinguishable from an ordinary refusal
+
+The client cannot tell a transport failure from a normal payment refusal. After 5.2s it received an empty 402 and no event. The SDK is silent exactly where not knowing hurts most. Ingestion has to classify this itself: `event_type=transport_failure`, caused by the client timeout, not by a facilitator reason. That split is the second product difference from Datadog-like tools, which do not separate a hung facilitator from a refused payment. `SETTLE_FAIL=true` still fires `onSettleFailure` with `NETWORK_ERROR`; the timeout path does not.
+
+### F5. Constraint checks see the mandate only after the signature
+
+`SDJWTVerifier` verifies the issuer signature inside its constructor, before the claims are readable. A closed payment of 500 minor units against open `payment.amount_range` max 100 is rejected with `amount 500 exceeds max 100`, but only after four signatures, the checkout hash, and the merchant ES256 check have already succeeded. One flipped byte in the closed checkout signature fails as `InvalidJWSSignature`. The amount cap in AP2 v0.2 is `constraints[].type = payment.amount_range` on the open Payment Mandate. There is no category constraint. `transaction_id` equals `checkout_hash` (base64url SHA-256 of the merchant Checkout JWT), so it stays out of `task_id` and is recorded as `proof.ap2_transaction_id`. Of the schema names, only `mandate.vct` is a spec claim. `mandate.form` is derived from the `.open.` suffix. `mandate.mandate_type`, `mandate.human_present`, and `mandate.limits` are not named v0.1 properties. Selective disclosure for a later explain view is the SD-JWT `_sd` digest list; the claim disclosed for this checkout is `checkout_jwt`. `checkout_hash` stays in the signed payload.
+
+### F6. counterparty changes meaning between challenge and settlement
+
+On a challenge, `counterparty` is the seller (`role=payTo`). On a settlement, `counterparty` is the payer, the buyer who signed. The USDC recipient is the challenge `payTo`, not the settlement counterparty. One field name therefore means opposite sides of the payment. A report that groups `counterparty` across event types will swap buyer and seller. For v0.3, add neutral `payer` and `payee` fields and keep `counterparty` for compatibility. Not changed in v0.2. The enricher queue already reconciles against the challenge seller, which is why A2 and A5 enrich instead of raising a false ALERT-5.
+
+### F10. The spec is read against live transactions
+
+Спека читается против живых транзакций, а не по документационному примеру. The session brief put the length byte in front of the codes. A live tail, read from the end, is marker, then schemaId, then codesLength, then the codes. The control transaction ends `bc_o3dj3qk8` + `0x0b` + `0x00` + the marker. `tests/test_erc8021.py` locks that order: `test_baseapp_example_reads_from_the_end` accepts it, and `test_docs_hex_is_not_the_backwards_layout` rejects the brief's hex.
+
+### F11. Public attribution is not public deanonymization
+
+Публичная атрибуция есть, публичная деанонимизация — нет, реестр не раскрывает бренды. A builder code on the calldata is a public fact. The registry card names that code as itself. That closes a brand table. The observer's count is that public suffix. A product name behind the code is not in the registry.
+
+### F12. Facilitators do not suffix their own settlements
+
+Фасилитаторы не подписывают свои сеттлменты. Суффикс — территория приложения или кошелька, а не клирингового слоя. In the 992 blocks, the 5120 tagged USDC transfers had no listed facilitator as `tx.from` or `tx.to`. The 92 transactions that did touch a listed address (PayAI 75, Ultravioleta DAO 13, Virtuals Protocol 4) had no ERC-8021 suffix. Those two sets do not meet. That split fits a clearing transaction which pulls the token and leaves the suffix to the app or the wallet. The 92 calls were not decoded in this pass. `0x0770d2124c0a581c28cfc47a659817145e6cc137`: x402-совместимость не доказана — не называть agent payments до подтверждения. The 1399 calls are `settle(address,address,uint256)` from seven unnamed senders and sum to 2.91 USDC. The method and the size do not identify the contract. It is not in the Swader registry, and Basescan gives it no name. The 992 blocks are about 33 minutes of Base, so they are a clock sample, not a market census. A public note this week can say two things: in the sampled windows, 10.3% of USDC transfers carry a builder code, and the listed facilitators did not attach a suffix. It does not call the 2.91 USDC, or the top-10 dollars, agent-payment volume.
+
+The 30-day hour walk that started on 2026-10-02 stays running. It sums every USDC Transfer leg into 24 UTC hours and does not store `tx_hash`, so the suffix profile cannot be joined onto this run. The table, due Sunday evening or Monday morning, is the baseline clock of all USDC on Base. A later pass keeps `tx_hash`, `block_number`, `block_ts`, plus `amount` and the Transfer log `from`/`to`. The amount is already in the same `getLogs` reply. An hourly suffix profile without it is an event count, and the post needs the dollars. Input is read afterwards, only for the stored hashes. That second profile is the one set beside the baseline. The journal line `COMPLETE` is in `artifacts/census_hours.log` (2026-10-02 22:55 UTC, 1,296,001 blocks, 110,334,933 Transfer legs). The baseline table is `artifacts/observer_hours.csv`. Each row pools that UTC hour across the 30 days. Leg counts are lowest at 23:00 UTC and highest at 14:00 UTC. The dollar column is the gross sum of Transfer values, so one payment with several hops is counted on every hop. The second pass is every 50th block of that range, four at a time, with the same journal rule: heartbeat, checkpoint, and `COMPLETE` in `artifacts/observer2.log`. The amount is the method's third argument. On the control transaction that argument was 16 minor units and the only native-USDC Transfer was 16. Three `transferWithAuthorization` calls in block 50784977 were 2000 and 2000. Pace follows candidate count: an empty block was about 1s and a block with six candidates was about 38s. The probe density was about 1.4 candidates a block. If the UTC night runs slower than the afternoon, the candidate density is higher at night than the baseline leg counts suggest. When `COMPLETE` appears, read four things and nothing else. `artifacts/observer2_summary.json`: the suffix share against the 10.3% of the first windows. Within about one percentage point, the sampling method holds. About half or about double, the windows were a biased clock, and that is the post's main finding. `artifacts/observer2_hours.csv`: whether the suffix hour peaks with the network at 14:00 UTC or sits in the night hours. The `unknown_sig` share is the answer to a router-shaped objection. The suffix-and-facilitator intersection is expected near 1%. A clearly larger intersection breaks F12, and that break outranks a confirmation. If facilitators turn out to carry most of the suffixes, the story reverses: attribution is already happening, and the gap is the registry, which does not publish the code names. PayAI and AIBC stay untouched until Monday 5 October 2026. The X post is written from this material on that day.
+
+Gate count: PASS = 1, PASS_PARTIAL = 1 when the experiment goal was met, FAIL = 0. Feasible experiments A1, A2, A3, A4, A5, C3 = 6/6. That gate is closed. B1, C1, C2 stay outside it as BLOCKED_EXTERNAL, with no date. B2 has since passed in the sandbox and does not reopen the gate. The MVP C adapter stays a spec-mock until an AWS account and a CDP wallet exist. New events are written as schema v0.2. v0.1 documents still validate, because `schema_version` accepts both `0.1` and `0.2`.
+
+Enricher: `src/enricher.py`. Input is a tx hash. Output is `money` plus `proof.tx_hash` only when the USDC transfer is confirmed. Checked on the A2 and A5 settlements: both returned amount `10000` to the payTo address. Pending-state watches sit on this module later, not in the A1–A5 server.
+
+Next: the C adapter stays a spec-mock. The C1 runbook remains in `docs/agent_spend_validation_experiments_v1.md` for the day an AWS account and a CDP wallet both exist. Engineering now is dashboard screen 3, a select over `ingested_events`. Observer v0 is running against public Base. It keeps native USDC transfers whose calldata ends in an ERC-8021 schema-0 suffix. A full 30-day walk is about 1.3 million blocks, and the public RPC rejects a getLogs window much above 50 blocks, so this pass is one 40-block window each day: 1200 blocks. In that sample, 5120 of 49924 USDC-moving transactions, 10.3%, carry a builder code. Ranked amounts for those windows are in `artifacts/observer_top10.csv`. They are the sample, not a scaled 30-day total. Control on Basescan: `0xa8d4a29b051c030bfa111613ff59a8dad480473f407f19c042ed8a36fcd8ff4a` input ends in `bc_o3dj3qk8` and the USDC Transfer is 16 minor units, both matching the stored row. A separate card-rail experiment passed and is not part of these Base measurements. `BLOCKED_EXTERNAL` does not count toward the gate.
+
+Codebook, 2026-10-02: `artifacts/observer_codebook.json`. Public metadata is `GET https://www.base.dev/v1/builder-codes/{code}`. Six of the top ten return 200, and on every card `name` is the code itself (`description` is `"{code}, a Builder Code"`, image is the shared placeholder). Four return 404 `builder code not found`: `bc_r7yhais5`, `bc_06kf6nbf`, `bc_doqm1bei`, `bc_l4vqaa9e`. The control code `bc_o3dj3qk8` also returns 200 with `name` equal to the code. An earlier `codeURI` / `payoutAddress` call for `bc_rbwbcf2x` and `rbwbcf2x` on registry `0x000000bc7e6457e610fe52dcc0ca5b3ce59c8e80` reverted Unregistered. The Base board at `dune.com/base_ds/base-builder-codes` still prints `bc_rbwbcf2x` as the raw code, on the same chart as rows that already have names (Base App, GMGN, Sigma, MaestroBots, Perps by Avantis). No public source names any of these ten, so the brand column stays empty. `bc_lv99qw8t` stays unlabeled; a count of small payments is not a product name.
+
+Two constraints for a later public note. This table is applications on Base: a `bc_` code marks DeFi, wallets, and markets as well as agents. The pass that can be titled agent payments comes after the codebook: keep the suffix, and require the sender to be a facilitator address already in the A2/A5 artifacts, or the call to be `settle`. Wording for the 10.3% and the ranked dollars is sampled windows. The CSV is that sample. The address list for that pass is `config/facilitators_base.json`: 57 Base addresses across 16 facilitators from Swader's registry, the same list served at facilitators.x402.watch, and the Basescan name on `0xdbdf3d8ed80f84c35d01c6c9f9271761bad90ba6` (Coinbase: x402 Facilitator 1). A5's settler is Base Sepolia and stays out of the Base match set. B2 is a Stripe PaymentIntent and has no Base address. The stored sample was reclassified without walking a new 30 days. `artifacts/observer_top10.csv` keeps the ten codes and adds `is_facilitator`. Every one of those ten is false: their dollars do not come from a listed facilitator or from `settle`. The separate total is `artifacts/observer_facilitator_total.json`. In the same windows, 1399 attributed transfers call `settle(address,address,uint256)` (`0x92669141`) on `0x0770d2124c0a581c28cfc47a659817145e6cc137` and sum to 2.91 USDC. Their seven senders are not in the published list and have no Basescan name. The control transaction is one of them. None of the 57 listed addresses is `tx.from` or `tx.to` on an attributed row. A full read of the 992 blocks found 92 transactions whose sender or target is on that list: PayAI 75, Ultravioleta DAO 13, Virtuals Protocol 4. None of those 92 carry an ERC-8021 suffix, so the conjunction excludes them. The named Coinbase address does not appear in these windows at all, so there is no Coinbase row. The A5 Sepolia hash is not in the table. See F12 before any of this is called agent-payment volume. PayAI and AIBC: silence through Sunday is the expected pace. Do not contact them before Monday 5 October 2026.
+
+Decision rule: 8/10 by the gate count above → freeze schema v0.1 and start MVP.
+A1–A2 FAIL → pivot to Stripe/AP2, park x402.
+C1–C2 FAIL → AgentCore out of MVP, into roadmap.

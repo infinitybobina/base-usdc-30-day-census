@@ -1,0 +1,62 @@
+{
+  "usdc_txs": 49924,
+  "attributed": 5120,
+  "logs": 98916,
+  "blocks": 1200,
+  "latest": 52063968,
+  "first_block": 50767968,
+  "last_block": 52020807,
+  "seconds": 1142.6,
+  "top": [
+    {
+      "code": "bc_rbwbcf2x",
+      "amount_usdc": "4316275.628183",
+      "payments": 2680
+    },
+    {
+      "code": "bc_r9qzf8op",
+      "amount_usdc": "1028908.574281",
+      "payments": 107
+    },
+    {
+      "code": "bc_nhvgty8t",
+      "amount_usdc": "121386.623855",
+      "payments": 99
+    },
+    {
+      "code": "bc_r7yhais5",
+      "amount_usdc": "78755.954605",
+      "payments": 30
+    },
+    {
+      "code": "bc_06kf6nbf",
+      "amount_usdc": "63986.251054",
+      "payments": 46
+    },
+    {
+      "code": "bc_scxiima9",
+      "amount_usdc": "35749.332497",
+      "payments": 158
+    },
+    {
+      "code": "bc_doqm1bei",
+      "amount_usdc": "23497.995966",
+      "payments": 13
+    },
+    {
+      "code": "bc_ipu1jetp",
+      "amount_usdc": "22872.561764",
+      "payments": 53
+    },
+    {
+      "code": "bc_lv99qw8t",
+      "amount_usdc": "17719.994108",
+      "payments": 219
+    },
+    {
+      "code": "bc_l4vqaa9e",
+      "amount_usdc": "10479.595939",
+      "payments": 7
+    }
+  ]
+}
