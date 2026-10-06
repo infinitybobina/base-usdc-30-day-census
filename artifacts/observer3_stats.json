@@ -1,0 +1,156 @@
+{
+  "report": "observer3 — payee/buyer backfill + hub attribution (preparation for post #2)",
+  "generated_utc": "2026-10-06",
+  "depends_on": [
+    "observer_run.json",
+    "observer_facilitator_total.json",
+    "observer2_summary.json",
+    "observer2_hours.csv"
+  ],
+  "pass_A_backfill": {
+    "scope": "same 25,921 blocks as pass 2, range 50,784,977-52,080,977, step 50",
+    "rows_decoded": 64757,
+    "rows_total": 64757,
+    "hub_settle_decoded": "27,972/27,972",
+    "twa_decoded": "36,785/36,785",
+    "quarantine": 0,
+    "missed_blocks": 0,
+    "amount_mismatch_vs_third_word": 0,
+    "payee_source": "calldata_decoded",
+    "control_tx": {
+      "hash_prefix": "0xa8d4a29b",
+      "buyer": "0x77e0b47e2d9506b8a10570ccbc32942bc896ce2a",
+      "seller": "0x2a4c93c938f343381ed17c1d8263aae2ee56f11e",
+      "amount_usdc": 1.6e-05,
+      "note": "off-grid (not on step-50 lattice); verified pre-run; same Transfer as pass 2"
+    },
+    "note": "run status: COMPLETE 2026-10-06 08:45 UTC; stop-rule (>5% undecoded hub calls) not triggered"
+  },
+  "hub_attribution": {
+    "hub_proxy": "0x0770d2124c0a581c28cfc47a659817145e6cc137",
+    "implementation": "0x9d4f987ab29b87cdf6329150e73f896543be5cde",
+    "proxy_standard": "EIP-1967 (UUPS-facing)",
+    "implementation_verification": {
+      "basescan": "Exact Match",
+      "sourcify": "exact_match, 2026-05-22",
+      "source_file": "contracts/SettlementV2.sol",
+      "compiler": "0.8.34, runs 200"
+    },
+    "abi": "settle(address buyer, address seller, uint256 sellerAmount); selector 0x92669141",
+    "implementation_active_from_block": 45062115,
+    "proxy_created": {
+      "utc": "2026-04-23T03:05:27Z",
+      "block": 45062090,
+      "tx_prefix": "0x8982ed6c",
+      "feeMultiplier_at_creation": 10000,
+      "flatFee_at_creation": 0
+    },
+    "attribution": {
+      "conclusion": "Surplus Intelligence (surplusintelligence.ai) — AI inference marketplace",
+      "signals": [
+        "operator docs describe same source file, ABI, and UUPS proxy on Base",
+        "documented operator-mediated settlement flow matches observed on-chain pattern"
+      ],
+      "secondary": "Blockscout Open Labels Initiative label: 'SettlementV2 Proxy', project Surplus Intelligence (community label; not commit authorship)",
+      "not_available": "Sourcify metadata contains no git repo/commit/author (Swarm/IPFS only); deployer funding-trace (B1) outstanding"
+    }
+  },
+  "marketplace_shape": {
+    "denominator": "27,972 settle calls on hub within pass-2 sample",
+    "unique_buyers": 132,
+    "unique_sellers": 234,
+    "unique_pairs": 1939,
+    "avg_calls_per_pair": 14.4,
+    "top10_buyers_share": {
+      "calls": 16020,
+      "share": 0.573
+    },
+    "top_buyer_calls": 4082,
+    "top10_sellers_share": {
+      "calls": 14198,
+      "share": 0.508
+    },
+    "top_seller_calls": 3383
+  },
+  "payment_size_distribution_settle": {
+    "denominator": "sellerAmount of 27,972 settle calls",
+    "median_usdc": 0.000143,
+    "max_usdc": 0.830477,
+    "bucket_note": "Ranges written with < are cumulative and overlap. Do not add their call counts to each other or to the later exclusive ranges. 23,564 + 3,564 + 782 + 62 + 0 = 27,972.",
+    "buckets": [
+      {
+        "range": "< $0.001",
+        "calls": 23564,
+        "share": 0.842,
+        "cumulative": true
+      },
+      {
+        "range": "< $0.01",
+        "calls": 27128,
+        "share": 0.97,
+        "cumulative": true
+      },
+      {
+        "range": "$0.01-$0.10",
+        "calls": 782,
+        "share": 0.028,
+        "cumulative": false
+      },
+      {
+        "range": "$0.10-$1",
+        "calls": 62,
+        "share": 0.002,
+        "cumulative": false
+      },
+      {
+        "range": ">= $1",
+        "calls": 0,
+        "share": 0.0,
+        "cumulative": false
+      }
+    ]
+  },
+  "wash_checks": {
+    "self_pay_hub": {
+      "calls": 9,
+      "of": 27972,
+      "share": 0.000322,
+      "amount_usdc": 0.00601
+    },
+    "self_pay_twa": {
+      "calls": 137,
+      "of": 36785,
+      "share": 0.003724,
+      "amount_usdc": 12.6815
+    },
+    "reverse_payment_pairs": {
+      "pairs_with_reverse_flow": 5,
+      "of_pairs": 1939,
+      "settlements_after_reverse": 9
+    },
+    "limitation": "funding-loop check limited to calls decoded in pass 2/3; pass 1 stored hourly aggregates without from/to, full graph join impossible"
+  },
+  "fee_mechanics": {
+    "hypothesis_source": "SettlementV2.calculateFee: fee = (sellerAmount * feeMultiplier) / 10000 - sellerAmount + flatFee",
+    "observed_in_window": {
+      "feeMultiplier": 10000,
+      "flatFee": 0,
+      "result": "fee = 0"
+    },
+    "receipts_checked": 16,
+    "transfers_per_settle_tx": 1,
+    "fee_recipient_address": "0x76bbd18f4fa42a2ee5947795d2f8816ed2f9ae30",
+    "fee_recipient_note": "configured; receives nothing in the 16 checked receipts",
+    "conclusion": "zero commission since contract creation 2026-04-23; monetization not enabled"
+  },
+  "press_timeline": {
+    "contract_deployed": "2026-04-23",
+    "marketplace_press_debut": "late May 2026 (~5 weeks after deployment)",
+    "note": "no dated operator announcement found"
+  },
+  "open_limitations": [
+    "B1 deployer funding-trace not yet performed",
+    "pass 1 lacks from/to (DECISION.md: future runs must store them)",
+    "OLI label provenance is community-submitted"
+  ]
+}
