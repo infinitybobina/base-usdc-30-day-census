@@ -29,7 +29,7 @@
   "hub_attribution": {
     "hub_proxy": "0x0770d2124c0a581c28cfc47a659817145e6cc137",
     "implementation": "0x9d4f987ab29b87cdf6329150e73f896543be5cde",
-    "proxy_standard": "EIP-1967 (UUPS-facing)",
+    "proxy_standard": "EIP-1967 (upgradeable)",
     "implementation_verification": {
       "basescan": "Exact Match",
       "sourcify": "exact_match, 2026-05-22",
@@ -37,7 +37,6 @@
       "compiler": "0.8.34, runs 200"
     },
     "abi": "settle(address buyer, address seller, uint256 sellerAmount); selector 0x92669141",
-    "implementation_active_from_block": 45062115,
     "proxy_created": {
       "utc": "2026-04-23T03:05:27Z",
       "block": 45062090,
@@ -46,13 +45,21 @@
       "flatFee_at_creation": 0
     },
     "attribution": {
-      "conclusion": "Surplus Intelligence (surplusintelligence.ai) — AI inference marketplace",
+      "conclusion": "Surplus Intelligence LLC (surplusintelligence.ai) — AI inference marketplace. Self-declared: the operator's own llms.txt names this proxy as its settlement contract on Base.",
       "signals": [
-        "operator docs describe same source file, ABI, and UUPS proxy on Base",
-        "documented operator-mediated settlement flow matches observed on-chain pattern"
+        "self-declaration: llms.txt at surplusintelligence.ai lists settlement proxy 0x0770...c137 on Base",
+        "same llms.txt example uses payTo 0x8581784D3E598cCa3482375CFF2409Ac9DD8c402 — the EOA that funded deployer gas (Apr 22-23) and granted DEFAULT_ADMIN_ROLE + OPERATOR_ROLE on the proxy (2026-09-12)",
+        "verified implementation SettlementV2.sol: ABI and UUPS proxy match operator's documentation",
+        "observed on-chain pattern matches documented operator-mediated settlement flow"
       ],
       "secondary": "Blockscout Open Labels Initiative label: 'SettlementV2 Proxy', project Surplus Intelligence (community label; not commit authorship)",
-      "not_available": "Sourcify metadata contains no git repo/commit/author (Swarm/IPFS only); deployer funding-trace (B1) outstanding"
+      "legal_entity": "Surplus Intelligence LLC, registered office 1309 Coffeen Avenue, STE 19992, Sheridan, WY 82801 (per the operator's Terms of Service; not an independent registry extract)",
+      "roles": {
+        "deployer": "0x104E4304f0153B488A9619428A420A1a9401392E (no ENS/label)",
+        "admin_grant_target_2026_09_12": "0x0F99fc0CBD7A114b2DA171FDa5A0167858f7afC2",
+        "feeRecipient_in_window": "0x76bbd18f4fa42a2ee5947795d2f8816ed2f9ae30 (CoinbaseSmartWallet implementation; name denotes wallet type, not operator identity)"
+      },
+      "not_available": "no public git repository links these addresses; attribution rests on self-declaration + role linkage + code/flow match"
     }
   },
   "marketplace_shape": {
@@ -74,9 +81,10 @@
   },
   "payment_size_distribution_settle": {
     "denominator": "sellerAmount of 27,972 settle calls",
+    "cumulative": true,
+    "note": "bucketing is nested; values must not be summed. Non-overlapping split: 23,564 + 3,564 + 782 + 62 + 0 = 27,972",
     "median_usdc": 0.000143,
     "max_usdc": 0.830477,
-    "bucket_note": "Ranges written with < are cumulative and overlap. Do not add their call counts to each other or to the later exclusive ranges. 23,564 + 3,564 + 782 + 62 + 0 = 27,972.",
     "buckets": [
       {
         "range": "< $0.001",
@@ -131,17 +139,17 @@
     "limitation": "funding-loop check limited to calls decoded in pass 2/3; pass 1 stored hourly aggregates without from/to, full graph join impossible"
   },
   "fee_mechanics": {
-    "hypothesis_source": "SettlementV2.calculateFee: fee = (sellerAmount * feeMultiplier) / 10000 - sellerAmount + flatFee",
+    "formula_from_source": "fee = (sellerAmount * feeMultiplier) / 10000 - sellerAmount + flatFee",
     "observed_in_window": {
       "feeMultiplier": 10000,
       "flatFee": 0,
-      "result": "fee = 0"
+      "result": "fee = flatFee = 0"
     },
     "receipts_checked": 16,
     "transfers_per_settle_tx": 1,
     "fee_recipient_address": "0x76bbd18f4fa42a2ee5947795d2f8816ed2f9ae30",
-    "fee_recipient_note": "configured; receives nothing in the 16 checked receipts",
-    "conclusion": "zero commission since contract creation 2026-04-23; monetization not enabled"
+    "fee_recipient_note": "configured; receives nothing in checked window; CoinbaseSmartWallet implementation",
+    "conclusion": "zero commission since contract creation 2026-04-23 (feeMultiplier/flatFee already 10000/0 in creation calldata); monetization not enabled"
   },
   "press_timeline": {
     "contract_deployed": "2026-04-23",
@@ -149,8 +157,8 @@
     "note": "no dated operator announcement found"
   },
   "open_limitations": [
-    "B1 deployer funding-trace not yet performed",
     "pass 1 lacks from/to (DECISION.md: future runs must store them)",
-    "OLI label provenance is community-submitted"
+    "OLI label provenance is community-submitted",
+    "no public git repo ties the operator to contract code; attribution stands on self-declaration + role linkage + code/flow match"
   ]
 }
